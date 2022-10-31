@@ -1,10 +1,14 @@
-#include <iostream>
 #include "SHA256.h"
+#include "Header.h"
 
-using namespace std;
 
 int main()
 {
-    
+	vector<user> users;
+	vector<transaction> transactions;
+	genUsers(users);
+	genTX(transactions, users);
+
+
 }
 
