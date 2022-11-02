@@ -28,7 +28,7 @@ void genUsers(vector<user>& users)
 		users.push_back(user);
 	}
 
-	cout << "Would you like to print out the users? [Y/N]";
+	cout << "Would you like to print out the users? [Y/N] ";
 	ats=yn();
 	if (ats == 'Y' || ats == 'y')
 	{
@@ -54,7 +54,7 @@ void genTX(vector<transaction>& transactions, vector<user> users)
 		transaction.setID(sha256(transaction.getSender() + transaction.getReceiver() + to_string(transaction.getSum())));
 		transactions.push_back(transaction);
 	}
-	cout << "Would you like to print out the transactions? [Y/N]";
+	cout << "Would you like to print out the transactions? [Y/N] ";
 	ats = yn();
 	if (ats == 'Y' || ats == 'y')
 	{
@@ -70,27 +70,17 @@ void genTX(vector<transaction>& transactions, vector<user> users)
 	}
 }
 
-void verifyTX(int location, int random, vector<user> &users, vector<transaction> &transactions, bool &verification, block &temporary, vector<transaction> &TXs)
+void verifyTX(int location, int random, vector<user> &users, vector<transaction> &transactions, bool &verification, block temporary[], vector<transaction>& TXs, int a)
 {
 	if (users.at(location).getBalance() >= transactions.at(random).getSum())
 	{
-		/*cout << location << endl;
-		cout << random << endl;
-		cout << users.at(location).getBalance() << " " << transactions.at(random).getSum() << endl;
-		cout << transactions.at(random).getID() << endl;
-		cout << endl;*/
 		TXs.push_back(transactions.at(random));
-		//cout << TXs.size();
-
-		//cout << transactions.at(random).getID() << endl;
 		if (TXs.back().getID() != transactions.at(random).getID())
 		{
 			TXs.pop_back();
 		}
-		//cout << transactions.size() << endl;
-		transactions.erase(transactions.begin() + random);
-		//cout << transactions.size() << endl;
-		//cout << endl;
+		if (a == 4)
+			transactions.erase(transactions.begin() + random); 
 		verification = true;
 	}
 	else
@@ -102,11 +92,12 @@ void verifyTX(int location, int random, vector<user> &users, vector<transaction>
 		cout << users.at(location).getPublicKey() << endl;
 		cout << transactions.at(random).getSender() << endl;
 		cout << endl;*/
-		transactions.erase(transactions.begin() + random);
+		if (a == 4)
+			transactions.erase(transactions.begin() + random);
 		verification = false;
 	}
 	//cout << TXs.size() << endl;
-	temporary.setTransactions(TXs);
+	temporary[a].setTransactions(TXs);
 }
 
 string MerkelRootGen(block& blockchain)
@@ -120,7 +111,7 @@ string MerkelRootGen(block& blockchain)
 	return sha256(ss.str());
 }
 
-string setBlock(block &blockchain, string previousHash, int k)
+string setBlock(block &blockchain, string previousHash, int k, int limit)
 {
 	string newhash;
 	if (k == 1)
@@ -129,22 +120,22 @@ string setBlock(block &blockchain, string previousHash, int k)
 	else
 		blockchain.setPrevHash(previousHash);
 	
-	auto t = std::time(nullptr);
-	auto tm = *std::localtime(&t);
+	auto t = time(nullptr);
+	auto tm = *localtime(&t);
 
-	std::ostringstream oss;
-	oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
+	ostringstream oss;
+	oss << put_time(&tm, "%d-%m-%Y %H-%M-%S");
 	string str = oss.str();
 
 	blockchain.setTime(str);
 	blockchain.setVersion("v" + to_string(k));
-	blockchain.setDifficulty("0000");
+	blockchain.setDifficulty("000");
 	blockchain.setMerkelRoot(MerkelRootGen(blockchain));
 
 	int x = blockchain.getDiff().size();
 	
 	int nonce = 0;
-	while (true)
+	while (nonce < limit)
 	{
 		newhash = sha256(blockchain.getDiff() + blockchain.getMerkelRootHash() + 
 			blockchain.getPrevHash() + blockchain.getTime() + 
@@ -161,55 +152,79 @@ string setBlock(block &blockchain, string previousHash, int k)
 
 void mining(vector<user> users, vector<transaction> transactions, vector<block>& blockchain)
 {
+	int ats;
 	vector<transaction> TXs;
 	bool verification;
 	int k = 0, q = 0;
-	while (transactions.size() != 0)
+	cout << "How many blocks would you like to mine? ";
+	cin >> ats;
+
+	while (transactions.size() != 0 && blockchain.size() < ats)
 	{
-		block temporary;
-		while (q <= 100 && transactions.size() != 0/*blockchain.size() <= 100*/)
+		block temporary[5];
+		for (int i = 0; i < 5; i++)
 		{
-			//cout << blockchain.size() << endl;
-			int random = rand() % transactions.size(), location;
-			//cout << transactions.size() << endl;
-			for (location = 0; location < users.size(); location++)
+			while (q <= 100 && transactions.size() != 0/*blockchain.size() <= 100*/)
 			{
-				if (transactions.at(random).getSender() == users.at(location).getPublicKey())
+				//cout << blockchain.size() << endl;
+				int random = rand() % transactions.size(), location;
+				//cout << transactions.size() << endl;
+				for (location = 0; location < users.size(); location++)
 				{
+					if (transactions.at(random).getSender() == users.at(location).getPublicKey())
+					{
+						break;
+					}
+				}
+
+				verifyTX(location, random, users, transactions, verification, temporary, TXs, i);
+				q++;
+			}
+			q = 0;
+			TXs.clear();
+		}
+		int limit = 50;
+		k++;
+		bool ar = 0;
+
+		while (true)
+		{
+			for (int i = 0; i < 5; i++)
+			{
+				if (k == 1)
+				{
+					temporary[i].setBlockHash(setBlock(temporary[i], "", k, limit));
+					//cout << temporary.getBlockHash() << endl;
+				}
+				else
+				{
+					temporary[i].setBlockHash(setBlock(temporary[i], blockchain.at(k - 2).getBlockHash(), k, limit));
+				}
+
+				if (temporary[i].getBlockHash() != "0")
+				{
+					ar = 1;
+					blockchain.push_back(temporary[i]);
+					cout << "Transactions left in the pool: " << transactions.size() << endl;
+					cout << "Block mined by " << i+1 << " miner!" << endl;
+
+					cout << "--------------------------------Block number: " << k << " ----------------------------------------------" << endl;
+					cout << "Block hash: " << blockchain.at(k - 1).getBlockHash() << endl;
+					cout << "Previous block hash: " << blockchain.at(k - 1).getPrevHash() << endl;
+					cout << "Transactions in block: " << blockchain.at(k - 1).getBlockTransactions().size() << endl;
+					cout << "Timestamp: " << blockchain.at(k - 1).getTime() << endl;
+					cout << "Version: " << blockchain.at(k - 1).getVersion() << endl;
+					cout << "Merkle Root hash: " << blockchain.at(k - 1).getMerkelRootHash() << endl;
+					cout << "Nonce: " << blockchain.at(k - 1).getNonce() << endl;
+					cout << "Difficulty: " << blockchain.at(k - 1).getDiff() << endl << endl;
+					cout << "---------------------------------------------------------------------------------------------" << endl << endl;
 					break;
 				}
 			}
-			
-			verifyTX(location, random, users, transactions, verification, temporary, TXs);
-			q++;
+			if (ar) break;
+			limit += 50;
 		}
-		k++;
-
-		if (k == 1)
-		{
-			temporary.setBlockHash(setBlock(temporary, "", k));
-			//cout << temporary.getBlockHash() << endl;
-		}
-		else
-		{
-			temporary.setBlockHash(setBlock(temporary, blockchain.at(k - 2).getBlockHash(), k));
-		}
-
-		blockchain.push_back(temporary);
-		cout << "Block mined!" << endl;
-
-		cout << "--------------------------------Block number: " << k << " ----------------------------------------------" << endl;
-		cout << "Block hash: " << blockchain.at(k - 1).getBlockHash() << endl;
-		cout << "Previous block hash: " << blockchain.at(k - 1).getPrevHash() << endl;
-		cout << "Transactions in block: " << blockchain.at(k - 1).getBlockTransactions().size() << endl;
-		cout << "Timestamp: " << blockchain.at(k - 1).getTime() << endl;
-		cout << "Version: " << blockchain.at(k - 1).getVersion() << endl;
-		cout << "Merkle Root hash: " << blockchain.at(k - 1).getMerkelRootHash() << endl;
-		cout << "Nonce: " << blockchain.at(k - 1).getNonce() << endl;
-		cout << "Difficulty: " << blockchain.at(k - 1).getDiff() << endl << endl;
-		cout << "---------------------------------------------------------------------------------------------" << endl << endl;
-
-		TXs.clear();
+		
 
 		for (auto tran : blockchain.at(k - 1).getBlockTransactions()) 
 		{
@@ -226,7 +241,6 @@ void mining(vector<user> users, vector<transaction> transactions, vector<block>&
 			users.at(send).setBalance(users.at(send).getBalance() - tran.getSum());
 			users.at(get).setBalance(users.at(send).getBalance() + tran.getSum());
 		}
-		q = 0;
 	}
 }
 
@@ -243,25 +257,25 @@ void printBlock(vector<block>& blockchain)
 			cout << "Which block would you like to print out? ";
 			cin >> i;
 			cout << "Block number " << i << ":" << endl;
-			cout << "Block hash: " << blockchain.at(i).getBlockHash() << endl;
-			cout << "Previous block hash: " << blockchain.at(i).getPrevHash() << endl;
-			cout << "Transaction number: " << blockchain.at(i).getBlockTransactions().size() << endl;
-			cout << "Timestamp: " << blockchain.at(i).getTime() << endl;
-			cout << "Version: " << blockchain.at(i).getVersion() << endl;
-			cout << "Merkle Root hash: " << blockchain.at(i).getMerkelRootHash() << endl;
-			cout << "Nonce: " << blockchain.at(i).getNonce() << endl;
-			cout << "Difficulty: " << blockchain.at(i).getDiff() << endl << endl;
+			cout << "Block hash: " << blockchain.at(i-1).getBlockHash() << endl;
+			cout << "Previous block hash: " << blockchain.at(i-1).getPrevHash() << endl;
+			cout << "Transaction number: " << blockchain.at(i-1).getBlockTransactions().size() << endl;
+			cout << "Timestamp: " << blockchain.at(i-1).getTime() << endl;
+			cout << "Version: " << blockchain.at(i-1).getVersion() << endl;
+			cout << "Merkle Root hash: " << blockchain.at(i-1).getMerkelRootHash() << endl;
+			cout << "Nonce: " << blockchain.at(i-1).getNonce() << endl;
+			cout << "Difficulty: " << blockchain.at(i-1).getDiff() << endl << endl;
 
 			cout << "Would you like to print out the transactions? [Y/N] ";
 			ats = yn();
 			if (ats == 'Y' || ats == 'y')
 			{
-				for (int q = 0; q < blockchain.at(i).getBlockTransactions().size(); q++) {
+				for (int q = 0; q < blockchain.at(i-1).getBlockTransactions().size(); q++) {
 					cout << "Transaction" + to_string(q + 1) << ":" << endl;
-					cout << "Transaction ID :" << blockchain.at(i).getBlockTransactions().at(q).getID() << endl;
-					cout << "Sender: " << blockchain.at(i).getBlockTransactions().at(q).getSender() << endl;
-					cout << "Receiver: " << blockchain.at(i).getBlockTransactions().at(q).getReceiver() << endl;
-					cout << "Sum: " << blockchain.at(i).getBlockTransactions().at(q).getSum() << endl;
+					cout << "Transaction ID :" << blockchain.at(i-1).getBlockTransactions().at(q).getID() << endl;
+					cout << "Sender: " << blockchain.at(i-1).getBlockTransactions().at(q).getSender() << endl;
+					cout << "Receiver: " << blockchain.at(i-1).getBlockTransactions().at(q).getReceiver() << endl;
+					cout << "Sum: " << blockchain.at(i-1).getBlockTransactions().at(q).getSum() << endl;
 					cout << endl;
 				}
 			}
@@ -313,10 +327,10 @@ void printUser(vector<user> users)
 		{
 			cout << "Which user would you like to print out? ";
 			cin >> i;
-			cout << "User" + to_string(i + 1) << ":" << endl;
-			cout << "Name: " << users.at(i).getName() << endl;
-			cout << "Public key: " << users.at(i).getPublicKey() << endl;
-			cout << "Balance: " << users.at(i).getBalance() << endl;
+			cout << "User" + to_string(i) << ":" << endl;
+			cout << "Name: " << users.at(i-1).getName() << endl;
+			cout << "Public key: " << users.at(i-1).getPublicKey() << endl;
+			cout << "Balance: " << users.at(i-1).getBalance() << endl;
 			cout << endl;
 			cout << "Would you like to print out another user? [Y/N] ";
 			ats = yn();
