@@ -45,3 +45,9 @@ Declined transactions are not added to the block, just get's deleted from the tr
 
 ![image](https://user-images.githubusercontent.com/43725384/199585493-0d3398da-1ce1-4f79-ac78-8cb0518a4a51.png)
 
+# Version 0.2
+
+Upgraded the functionality so that 5 potential block candidates are being mined at the same time.
+
+![image](https://user-images.githubusercontent.com/43725384/199606194-7ba1ed3c-1854-4211-9109-273ea31cab22.png)
+
