@@ -9,8 +9,10 @@
 #include <time.h>
 #include <chrono>
 #include <sstream>
+#include <ctime>
 
 using namespace std;
+using namespace chrono;
 
 class user
 {
@@ -125,14 +127,14 @@ private:
     string blockHash;
     vector<transaction> blockTXs;
     string prevBlockHash;
-    int timestamp;
+    string timestamp;
     string version;
     string MerkelRootHash;
     int nonce;
     string diff;
 public:
     typedef vector<transaction> transactions;
-    block(string blHash, string pBlock, int tstamp, string vers, string Mhash, int nonc, string dif)
+    block(string blHash, string pBlock, string tstamp, string vers, string Mhash, int nonc, string dif)
     {
         this->blockHash = blHash;
         this->prevBlockHash = pBlock;
@@ -146,7 +148,7 @@ public:
     {
         this->blockHash = "";
         this->prevBlockHash = "";
-        this->timestamp = 0;
+        this->timestamp = "";
         this->version = "";
         this->MerkelRootHash = "";
         this->nonce = 0;
@@ -168,7 +170,7 @@ public:
         return this->prevBlockHash;
     }
 
-    int getTime()
+    string getTime()
     {
         return this->timestamp;
     }
@@ -213,7 +215,7 @@ public:
         this->prevBlockHash = hash;
     }
 
-    void setTime(int time)
+    void setTime(string time)
     {
         this->timestamp = time;
     }
@@ -239,3 +241,6 @@ public:
 void genUsers(vector<user> &users);
 void genTX(vector<transaction>& transactions, vector<user> users);
 void mining(vector<user> users, vector<transaction> transactions, vector<block>& blockchain);
+void printBlock(vector<block>& blockchain);
+void printTX(vector<transaction> transactions);
+void printUser(vector<user> users);
