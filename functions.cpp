@@ -206,8 +206,7 @@ void mining(vector<user> users, vector<transaction> transactions, vector<block>&
 					ar = 1;
 					blockchain.push_back(temporary[i]);
 					cout << "Transactions left in the pool: " << transactions.size() << endl;
-					cout << "Block mined by " << i+1 << " miner!" << endl;
-
+					cout << "Block " << i+1 <<  " was mined first!" << endl;
 					cout << "--------------------------------Block number: " << k << " ----------------------------------------------" << endl;
 					cout << "Block hash: " << blockchain.at(k - 1).getBlockHash() << endl;
 					cout << "Previous block hash: " << blockchain.at(k - 1).getPrevHash() << endl;
